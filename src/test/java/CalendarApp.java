@@ -9,10 +9,7 @@ import org.junit.Test;
 import org.openqa.selenium.By;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.remote.DesiredCapabilities;
-
 import java.time.OffsetTime;
-
-
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.time.ZoneOffset;
