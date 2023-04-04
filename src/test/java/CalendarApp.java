@@ -116,19 +116,19 @@ public class CalendarApp {
         var eventHoursValue = eventTime.format(DateTimeFormatter.ofPattern("h"));
         var eventMinutesValue = Integer.toString(eventTime.getMinute());
         var eventAmPmValue = eventTime.format(DateTimeFormatter.ofPattern("a"));
-        var hourField = driver.findElement(By.xpath("//android.widget.EditText[1]"));
+        var hourField = driver.findElement(By.id("android:id/input_hour"));
         hourField.sendKeys(eventHoursValue);
-        driver.findElement(By.xpath("//android.widget.EditText[2]")).sendKeys(eventMinutesValue);
+        driver.findElement(By.id("android:id/input_minute")).sendKeys(eventMinutesValue);
         driver.findElement(By.className("android.widget.CheckedTextView")).click();
         Thread.sleep(2000);
 
         if(eventAmPmValue.contains("AM")){
-            driver.findElement(By.xpath("//android.widget.CheckedTextView[1]")).click();
+            driver.findElement(By.xpath("//*[@text = \"AM\"]")).click();
         }else{
-            driver.findElement(By.xpath("//android.widget.CheckedTextView[2]")).click();
+            driver.findElement(By.xpath("//*[@text = \"PM\"]")).click();
         }
 
-        driver.findElement(By.xpath("//android.widget.Button[2]")).click();
+        driver.findElement(By.xpath("//android.widget.Button[@text = \"OK\"]")).click();
     }
 
 
