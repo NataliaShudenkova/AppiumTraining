@@ -128,7 +128,7 @@ public class CalendarApp {
             driver.findElement(By.xpath("//*[@text = \"PM\"]")).click();
         }
 
-        driver.findElement(By.xpath("//android.widget.Button[@text = \"OK\"]")).click();
+        driver.findElement(new AppiumBy.ByAndroidUIAutomator("new UiSelector().text(\"OK\")")).click();
     }
 
 
