@@ -7,7 +7,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.openqa.selenium.By;
-import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import java.time.OffsetTime;
 import java.net.MalformedURLException;
@@ -17,6 +16,7 @@ import java.time.format.DateTimeFormatter;
 
 public class CalendarApp {
     AndroidDriver driver;
+    String eventName;
     @Before
     public void driverSetUp() throws MalformedURLException {
         URL driverUrl = new URL("http://0.0.0.0:4723/wd/hub");
@@ -31,26 +31,23 @@ public class CalendarApp {
 
     @Test
     public void testMethod() throws InterruptedException {
-        try{
-            //Verify if Welcome window displayed.
-            if(driver.findElement(By.xpath("//android.widget.TextView[@content-desc=\"Welcome to Google Calendar\"]")).isEnabled())
-            {
-                driver.findElement(By.id("next_arrow")).click();
-                driver.findElement(By.id("oobe_done_button")).click();
-                Thread.sleep(5000);
-                driver.findElement(By.id("floating_action_button")).click();
-                Thread.sleep(2000);
-            }
-        }catch (NoSuchElementException ex)
+
+        //Verify if Welcome window displayed.
+        var welcomeWindow = driver.findElements(By.xpath("//*[@content-desc='Welcome to Google Calendar']"));
+        if(!welcomeWindow.isEmpty())
         {
-            driver.findElement(By.id("floating_action_button")).click();
-            Thread.sleep(2000);
+            driver.findElement(By.id("next_arrow")).click();
+            driver.findElement(By.id("oobe_done_button")).click();
+            Thread.sleep(5000);
         }
 
-        //Add Event
-        driver.findElement(By.xpath("//android.widget.TextView[@content-desc=\"Event button\"]")).click();
+        driver.findElement(By.id("floating_action_button")).click();
         Thread.sleep(2000);
-        var eventName = "New Test Event";
+
+        //Add Event
+        driver.findElement(AppiumBy.accessibilityId("Event button")).click();
+        Thread.sleep(2000);
+        eventName = "New Test Event";
         driver.findElement(By.id("title")).sendKeys(eventName);
         driver.findElement(By.id("title")).click();
         if(driver.isKeyboardShown()) driver.pressKey(new KeyEvent(AndroidKey.BACK));
@@ -78,30 +75,19 @@ public class CalendarApp {
         var formattedEndTimeValue = endTimeForEvent.format(DateTimeFormatter.ofPattern("h:mm a"));
 
         //Verify: the Evens is displayed in Calendar
-        try {
-            Assert.assertTrue("The event is not found.",
-                    TryFindElement(eventName +
-                            ", " + formattedStartTimeValue + " – " + formattedEndTimeValue));
-        }
-        finally {
-            var eventElement = driver.findElement(By.xpath("//android.view.View[contains(@content-desc, \"" + eventName + "\")]"));
-            eventElement.click();
-            Thread.sleep(5000);
-            driver.findElement(AppiumBy.accessibilityId("More options")).click();
-            Thread.sleep(3000);
-
-            //Delete the event
-            driver.findElement(By.xpath("//android.widget.TextView[@text= \"Delete\"]")).click();
-            Thread.sleep(3000);
-            driver.findElement(By.xpath("//android.widget.Button[@text= \"Delete\"]")).click();
-        }
+        Assert.assertTrue("The event is not found or event qty is more than one.",
+                TryFindElement("//*[contains(@content-desc,'" + eventName +"')]"));
+        var actualEventResult = driver.findElement(By.xpath("//*[contains(@content-desc,'" + eventName +"')]")).getAttribute("content-desc");
+        Assert.assertEquals("The event name or time is not expected.",
+                eventName +
+                        ", " + formattedStartTimeValue + " – " + formattedEndTimeValue, actualEventResult);
     }
 
     private boolean TryFindElement(String path){
-        try{
-            driver.findElement(AppiumBy.accessibilityId(path)).isDisplayed();
+        var elements = driver.findElements(By.xpath(path));
+        if(!elements.isEmpty() && elements.size() == 1){
             return true;
-        }catch (NoSuchElementException ex){
+        }else{
             return false;
         }
     }
@@ -123,18 +109,38 @@ public class CalendarApp {
         Thread.sleep(2000);
 
         if(eventAmPmValue.contains("AM")){
-            driver.findElement(By.xpath("//*[@text = \"AM\"]")).click();
+            driver.findElement(By.xpath("//*[@text = 'AM']")).click();
         }else{
-            driver.findElement(By.xpath("//*[@text = \"PM\"]")).click();
+            driver.findElement(By.xpath("//*[@text = 'PM']")).click();
         }
 
         driver.findElement(new AppiumBy.ByAndroidUIAutomator("new UiSelector().text(\"OK\")")).click();
     }
 
+    private void deleteEvent() throws InterruptedException {
+        var eventElements = driver.findElements(By.xpath("//*[contains(@content-desc, '" + eventName + "')]"));
+
+        if(!eventElements.isEmpty()){
+            for (var eventElement:
+                    eventElements) {
+                eventElement.click();
+                Thread.sleep(5000);
+                driver.findElement(AppiumBy.accessibilityId("More options")).click();
+                Thread.sleep(3000);
+
+                //Delete the event
+                driver.findElement(By.xpath("//*[@text= 'Delete']")).click();
+                Thread.sleep(3000);
+                driver.findElement(By.id("android:id/button1")).click();
+                Thread.sleep(3000);
+            }
+        }
+    }
 
     @After
-    public void driverTearDown(){
-       driver.quit();
+    public void driverTearDown() throws InterruptedException {
+        deleteEvent();
+        driver.quit();
     }
 }
 
