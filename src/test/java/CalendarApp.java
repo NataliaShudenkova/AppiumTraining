@@ -8,11 +8,15 @@ import org.junit.Before;
 import org.junit.Test;
 import org.openqa.selenium.By;
 import org.openqa.selenium.remote.DesiredCapabilities;
-import java.time.OffsetTime;
+
+import java.io.File;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.time.OffsetTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.TimeUnit;
 
 public class CalendarApp {
     AndroidDriver driver;
@@ -23,7 +27,13 @@ public class CalendarApp {
         DesiredCapabilities caps = new DesiredCapabilities();
         caps.setCapability("platformName", "Android");
         caps.setCapability("automationName", "UiAutomator2");
+        caps.setCapability("unlockType", "pin");
+        caps.setCapability("unlockKey","1111");
         caps.setCapability("udid","emulator-5554");
+        caps.setCapability("noReset",true);
+        caps.setCapability("avd","Pixel_6_API_33_Android_13_2");
+        caps.setCapability("avdLaunchTimeout","120000");
+        caps.setCapability("avdReadyTimeout","60000");
         caps.setCapability("appPackage", "com.google.android.calendar");
         caps.setCapability("appActivity","com.android.calendar.event.LaunchInfoActivity");
         driver = new AndroidDriver(driverUrl, caps);
@@ -138,9 +148,25 @@ public class CalendarApp {
     }
 
     @After
-    public void driverTearDown() throws InterruptedException {
+    public void driverTearDown() throws InterruptedException, IOException {
         deleteEvent();
         driver.quit();
+        //kill emulator
+        try{
+            var newDir = "D:\\AndroidSdk\\platform-tools";
+            var killCommand = "cmd.exe /c start .\\adb.exe -s emulator-5554 emu kill";
+            var builder = Runtime.getRuntime();
+            var process = builder.exec(killCommand, null, new File(newDir));
+            process.waitFor(4000, TimeUnit.MILLISECONDS);
+        }catch (IOException e){
+            e.printStackTrace();
+        }catch (InterruptedException e){
+            e.printStackTrace();
+        }
+
+
+        //
+
     }
 }
 
