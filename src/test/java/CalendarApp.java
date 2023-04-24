@@ -1,3 +1,4 @@
+import com.google.common.collect.ImmutableMap;
 import io.appium.java_client.AppiumBy;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.android.nativekey.AndroidKey;
@@ -7,6 +8,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.remote.DesiredCapabilities;
 
 import java.io.File;
@@ -79,6 +81,17 @@ public class CalendarApp {
         var endTimeForEvent = endTimeButtonValue.plusMinutes(30);
         setTime(false, endTimeButtonValue, endTimeForEvent);
         Thread.sleep(2000);
+        driver.findElement(By.xpath("//*[contains(@text, 'location')]")).click();
+        Thread.sleep(2000);
+        driver.findElement(By.id("search_text")).sendKeys("Vilnius");
+        Thread.sleep(2000);
+        driver.findElement(By.xpath("//*[@text = 'Vilnius, Vilnius City Municipality']")).click();
+        Thread.sleep(2000);
+
+        //Verify: Vilnius location is displayed for the event
+        var actualLocation = driver.findElements(By.xpath("//*[contains(@text, 'Vilnius City')]"));
+        Assert.assertFalse("Vilnius location is not displayed.", actualLocation.isEmpty());
+
         driver.findElement(By.id("save")).click();
         Thread.sleep(5000);
         var formattedStartTimeValue = startTimeForEvent.format(DateTimeFormatter.ofPattern("h:mm a"));
@@ -90,7 +103,7 @@ public class CalendarApp {
         var actualEventResult = driver.findElement(By.xpath("//*[contains(@content-desc,'" + eventName +"')]")).getAttribute("content-desc");
         Assert.assertEquals("The event name or time is not expected.",
                 eventName +
-                        ", " + formattedStartTimeValue + " – " + formattedEndTimeValue, actualEventResult);
+                        ", " + formattedStartTimeValue + " – " + formattedEndTimeValue + ", Vilnius, Vilnius City Municipality, Lithuania", actualEventResult);
     }
 
     private boolean TryFindElement(String path){
@@ -127,6 +140,33 @@ public class CalendarApp {
         driver.findElement(new AppiumBy.ByAndroidUIAutomator("new UiSelector().text(\"OK\")")).click();
     }
 
+    private void deleteEventFromSchedule() throws InterruptedException {
+        driver.findElement(AppiumBy.accessibilityId("Show Calendar List and Settings drawer")).click();
+        Thread.sleep(4000);
+        driver.findElement(By.xpath("//*[contains(@content-desc,'Schedule view')]")).click();
+        Thread.sleep(3000);
+        var eventElements = driver.findElements(By.xpath("//*[contains(@content-desc, '" + eventName + "')]"));
+
+        if(!eventElements.isEmpty()) {
+            for (var eventElement :
+                    eventElements) {
+                var startY = eventElement.getLocation().getY();
+                int startX = eventElement.getLocation().getX();
+                var width = eventElement.getSize().getWidth();
+                var height = eventElement.getSize().getHeight();
+                Thread.sleep(2000);
+                ((JavascriptExecutor) driver).executeScript("mobile: swipeGesture", ImmutableMap.of(
+                        "left", startX, "top", startY, "width", width, "height", height,
+                        "direction", "right",
+                        "percent", 1
+                ));
+                Thread.sleep(2000);
+                driver.findElement(By.id("android:id/button1")).click();
+                Thread.sleep(2000);
+            }
+        }
+    }
+
     private void deleteEvent() throws InterruptedException {
         var eventElements = driver.findElements(By.xpath("//*[contains(@content-desc, '" + eventName + "')]"));
 
@@ -134,8 +174,7 @@ public class CalendarApp {
             for (var eventElement:
                     eventElements) {
                 eventElement.click();
-                Thread.sleep(5000);
-                driver.findElement(AppiumBy.accessibilityId("More options")).click();
+                Thread.sleep(5000);driver.findElement(AppiumBy.accessibilityId("More options")).click();
                 Thread.sleep(3000);
 
                 //Delete the event
@@ -149,7 +188,8 @@ public class CalendarApp {
 
     @After
     public void driverTearDown() throws InterruptedException, IOException {
-        deleteEvent();
+        //deleteEvent();
+        deleteEventFromSchedule();
         driver.quit();
         //kill emulator
         try{
@@ -163,10 +203,6 @@ public class CalendarApp {
         }catch (InterruptedException e){
             e.printStackTrace();
         }
-
-
-        //
-
     }
 }
 
