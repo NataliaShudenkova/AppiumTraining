@@ -1,5 +1,7 @@
-import com.google.common.collect.ImmutableMap;
-import io.appium.java_client.AppiumBy;
+import Screens.CalendarScreen;
+import Screens.EventScreen;
+import Screens.NotificationScreen;
+import Screens.WelcomeCalendarScreen;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.android.nativekey.AndroidKey;
 import io.appium.java_client.android.nativekey.KeyEvent;
@@ -8,63 +10,47 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.openqa.selenium.By;
-import org.openqa.selenium.JavascriptExecutor;
-import org.openqa.selenium.remote.DesiredCapabilities;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.net.URL;
 import java.time.OffsetTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
-public class CalendarApp {
-    AndroidDriver driver;
+public class CalendarApp extends TestBase {
+    private AndroidDriver driver;
+    WelcomeCalendarScreen welcomeCalendarScreen;
+    CalendarScreen calendarScreen;
+    EventScreen eventScreen;
+    NotificationScreen notificationScreen;
+
     String eventName;
+
+
+
     @Before
-    public void driverSetUp() throws MalformedURLException {
-        URL driverUrl = new URL("http://0.0.0.0:4723/wd/hub");
-        DesiredCapabilities caps = new DesiredCapabilities();
-        caps.setCapability("platformName", "Android");
-        caps.setCapability("automationName", "UiAutomator2");
-        caps.setCapability("unlockType", "pin");
-        caps.setCapability("unlockKey","1111");
-        caps.setCapability("udid","emulator-5554");
-        caps.setCapability("noReset",true);
-        caps.setCapability("avd","Pixel_6_API_33_Android_13_2");
-        caps.setCapability("avdLaunchTimeout","120000");
-        caps.setCapability("avdReadyTimeout","60000");
-        caps.setCapability("appPackage", "com.google.android.calendar");
-        caps.setCapability("appActivity","com.android.calendar.event.LaunchInfoActivity");
-        driver = new AndroidDriver(driverUrl, caps);
+    public void pageSetUp() throws MalformedURLException {
+        driver = driverSetUp();
+        welcomeCalendarScreen = new WelcomeCalendarScreen(driver);
+        calendarScreen = new CalendarScreen(driver);
+        eventScreen = new EventScreen(driver);
+        notificationScreen = new NotificationScreen(driver);
     }
 
     @Test
     public void testMethod() throws InterruptedException {
-
         //Verify if Welcome window displayed.
-        var welcomeWindow = driver.findElements(By.xpath("//*[@content-desc='Welcome to Google Calendar']"));
-        if(!welcomeWindow.isEmpty())
+        if(welcomeCalendarScreen.isWelcomeCalendarScreen())
         {
-            driver.findElement(By.id("next_arrow")).click();
-            driver.findElement(By.id("oobe_done_button")).click();
-            Thread.sleep(5000);
+            welcomeCalendarScreen.NavigateToCalendar();
         }
 
-        driver.findElement(By.id("floating_action_button")).click();
-        Thread.sleep(2000);
+        calendarScreen.clickAddEvent();
 
-        //Add Event
-        driver.findElement(AppiumBy.accessibilityId("Event button")).click();
-        Thread.sleep(2000);
-        eventName = "New Test Event";
-        driver.findElement(By.id("title")).sendKeys(eventName);
-        driver.findElement(By.id("title")).click();
-        if(driver.isKeyboardShown()) driver.pressKey(new KeyEvent(AndroidKey.BACK));
-
-        //Set Event Start Time and End Time
+        //calculate default Time in control in accordance with current OffsetTime for getting control path
         OffsetTime startTimeButtonValue;
 
         if(OffsetTime.now().getMinute() < 30){
@@ -74,100 +60,100 @@ public class CalendarApp {
             startTimeButtonValue = OffsetTime.now(ZoneOffset.UTC).minusMinutes(OffsetTime.now().getMinute()).plusMinutes(60);
         }
 
+        //Set Event Start Time and End Time
         var startTimeForEvent = OffsetTime.now(ZoneOffset.UTC).plusHours(1);
-        setTime(true, startTimeButtonValue, startTimeForEvent);
-        Thread.sleep(5000);
         var endTimeButtonValue = startTimeForEvent.plusHours(1);
         var endTimeForEvent = endTimeButtonValue.plusMinutes(30);
-        setTime(false, endTimeButtonValue, endTimeForEvent);
-        Thread.sleep(2000);
-        driver.findElement(By.xpath("//*[contains(@text, 'location')]")).click();
-        Thread.sleep(2000);
-        driver.findElement(By.id("search_text")).sendKeys("Vilnius");
-        Thread.sleep(2000);
-        driver.findElement(By.xpath("//*[@text = 'Vilnius, Vilnius City Municipality']")).click();
-        Thread.sleep(2000);
+        var defaultTimeButtonValues = new ArrayList<OffsetTime>();
+        defaultTimeButtonValues.add(startTimeButtonValue);
+        defaultTimeButtonValues.add(endTimeButtonValue);
+        var desiredEventTime = new ArrayList<OffsetTime>();
+        desiredEventTime.add(startTimeForEvent);
+        desiredEventTime.add(endTimeForEvent);
 
-        //Verify: Vilnius location is displayed for the event
-        var actualLocation = driver.findElements(By.xpath("//*[contains(@text, 'Vilnius City')]"));
-        Assert.assertFalse("Vilnius location is not displayed.", actualLocation.isEmpty());
+        //Create Event with location
+        eventName = "New Test Event 1";
+        var locationSearchParam = "Vilnius";
+        var locationResultParam = "Vilnius, Vilnius City Municipality";
+        eventScreen.createEventWithLocation(eventName, defaultTimeButtonValues, desiredEventTime, driver,
+                locationSearchParam, locationResultParam );
 
-        driver.findElement(By.id("save")).click();
-        Thread.sleep(5000);
         var formattedStartTimeValue = startTimeForEvent.format(DateTimeFormatter.ofPattern("h:mm a"));
         var formattedEndTimeValue = endTimeForEvent.format(DateTimeFormatter.ofPattern("h:mm a"));
 
-        //Verify: the Evens is displayed in Calendar
+        //Verify: the Event is displayed in Calendar with proper time and location
         Assert.assertTrue("The event is not found or event qty is more than one.",
-                TryFindElement("//*[contains(@content-desc,'" + eventName +"')]"));
+                calendarScreen.tryFindElement(By.xpath("//*[contains(@content-desc,'" + eventName +"')]")));
         var actualEventResult = driver.findElement(By.xpath("//*[contains(@content-desc,'" + eventName +"')]")).getAttribute("content-desc");
-        Assert.assertEquals("The event name or time is not expected.",
+        Assert.assertEquals("The event name, or time, or location is not expected.",
                 eventName +
                         ", " + formattedStartTimeValue + " – " + formattedEndTimeValue + ", Vilnius, Vilnius City Municipality, Lithuania", actualEventResult);
     }
 
-    private boolean TryFindElement(String path){
-        var elements = driver.findElements(By.xpath(path));
-        if(!elements.isEmpty() && elements.size() == 1){
-            return true;
-        }else{
-            return false;
+    @Test
+    public void calendarNotification() throws InterruptedException{
+        if(welcomeCalendarScreen.isWelcomeCalendarScreen())
+        {
+            welcomeCalendarScreen.NavigateToCalendar();
+        }
+
+        calendarScreen.clickAddEvent();
+
+        //calculate default Time in control in accordance with current OffsetTime for getting control path
+        OffsetTime startTimeButtonValue;
+
+        if(OffsetTime.now().getMinute() < 30){
+            startTimeButtonValue = OffsetTime.now(ZoneOffset.UTC).minusMinutes(OffsetTime.now().getMinute()).plusMinutes(30);
+        }
+        else{
+            startTimeButtonValue = OffsetTime.now(ZoneOffset.UTC).minusMinutes(OffsetTime.now().getMinute()).plusMinutes(60);
+        }
+
+        //Set desired Event Start Time and End Time in Time Controls
+        var startTimeForEvent = OffsetTime.now(ZoneOffset.UTC).plusMinutes(2);
+        var endTimeButtonValue = startTimeForEvent.plusHours(1);
+        var endTimeForEvent = startTimeForEvent.plusMinutes(1);
+        var defaultTimeButtonValues = new ArrayList<OffsetTime>();
+        defaultTimeButtonValues.add(startTimeButtonValue);
+        defaultTimeButtonValues.add(endTimeButtonValue);
+        var desiredEventTime = new ArrayList<OffsetTime>();
+        desiredEventTime.add(startTimeForEvent);
+        desiredEventTime.add(endTimeForEvent);
+
+        //Create Event with desired time
+        eventName = "New Test Event 2";
+        eventScreen.createEvent(eventName, defaultTimeButtonValues, desiredEventTime, driver);
+
+        //Open Notification page
+        driver.openNotifications();
+       // Verify the Calendar Notification is displayed with correct Name and Time
+        Assert.assertTrue("Event Name is not found.",  notificationScreen.getElementText(By.id("android:id/title")).contains(eventName));
+        var formattedStartTimeValue = startTimeForEvent.format(DateTimeFormatter.ofPattern("h:mm"));
+        var formattedEndTimeValue = endTimeForEvent.format(DateTimeFormatter.ofPattern("h:mm a"));
+        Assert.assertTrue("Incorrect time", notificationScreen.getElementText(By.id("android:id/big_text")).contains(formattedStartTimeValue + " – " + formattedEndTimeValue));
+        driver.pressKey(new KeyEvent(AndroidKey.BACK));
+    }
+
+    @After
+    public void driverTearDown() {
+        //deleteEvent();
+        calendarScreen.deleteEventFromSchedule(eventName);
+        driver.quit();
+        //kill emulator
+        try{
+            var newDir = "D:\\AndroidSdk\\platform-tools";
+            var killCommand = "cmd.exe /c start .\\adb.exe -s emulator-5554 emu kill";
+            var builder = Runtime.getRuntime();
+            var process = builder.exec(killCommand, null, new File(newDir));
+            process.waitFor(4000, TimeUnit.MILLISECONDS);
+        }catch (IOException e){
+            e.printStackTrace();
+        }catch (InterruptedException e){
+            e.printStackTrace();
         }
     }
 
-    private void setTime(boolean isStartTime, OffsetTime timeButtonValue, OffsetTime eventTime) throws InterruptedException {
-        var formattedTimeButtonValue = timeButtonValue.format(DateTimeFormatter.ofPattern("h:mm a"));
-        var timeButton = driver.findElement(AppiumBy.accessibilityId(isStartTime ? "Start time: " + formattedTimeButtonValue : "End time: " + formattedTimeButtonValue));
-        timeButton.click();
-        Thread.sleep(3000);
-        driver.findElement(AppiumBy.accessibilityId("Switch to text input mode for the time input.")).click();
-        Thread.sleep(3000);
-        var eventHoursValue = eventTime.format(DateTimeFormatter.ofPattern("h"));
-        var eventMinutesValue = Integer.toString(eventTime.getMinute());
-        var eventAmPmValue = eventTime.format(DateTimeFormatter.ofPattern("a"));
-        var hourField = driver.findElement(By.id("android:id/input_hour"));
-        hourField.sendKeys(eventHoursValue);
-        driver.findElement(By.id("android:id/input_minute")).sendKeys(eventMinutesValue);
-        driver.findElement(By.className("android.widget.CheckedTextView")).click();
-        Thread.sleep(2000);
-
-        if(eventAmPmValue.contains("AM")){
-            driver.findElement(By.xpath("//*[@text = 'AM']")).click();
-        }else{
-            driver.findElement(By.xpath("//*[@text = 'PM']")).click();
-        }
-
-        driver.findElement(new AppiumBy.ByAndroidUIAutomator("new UiSelector().text(\"OK\")")).click();
-    }
-
-    private void deleteEventFromSchedule() throws InterruptedException {
-        driver.findElement(AppiumBy.accessibilityId("Show Calendar List and Settings drawer")).click();
-        Thread.sleep(4000);
-        driver.findElement(By.xpath("//*[contains(@content-desc,'Schedule view')]")).click();
-        Thread.sleep(3000);
-        var eventElements = driver.findElements(By.xpath("//*[contains(@content-desc, '" + eventName + "')]"));
-
-        if(!eventElements.isEmpty()) {
-            for (var eventElement :
-                    eventElements) {
-                var startY = eventElement.getLocation().getY();
-                int startX = eventElement.getLocation().getX();
-                var width = eventElement.getSize().getWidth();
-                var height = eventElement.getSize().getHeight();
-                Thread.sleep(2000);
-                ((JavascriptExecutor) driver).executeScript("mobile: swipeGesture", ImmutableMap.of(
-                        "left", startX, "top", startY, "width", width, "height", height,
-                        "direction", "right",
-                        "percent", 1
-                ));
-                Thread.sleep(2000);
-                driver.findElement(By.id("android:id/button1")).click();
-                Thread.sleep(2000);
-            }
-        }
-    }
-
-    private void deleteEvent() throws InterruptedException {
+    /*private void deleteEvent() throws InterruptedException {
         var eventElements = driver.findElements(By.xpath("//*[contains(@content-desc, '" + eventName + "')]"));
 
         if(!eventElements.isEmpty()){
@@ -184,25 +170,7 @@ public class CalendarApp {
                 Thread.sleep(3000);
             }
         }
-    }
+    }*/
 
-    @After
-    public void driverTearDown() throws InterruptedException, IOException {
-        //deleteEvent();
-        deleteEventFromSchedule();
-        driver.quit();
-        //kill emulator
-        try{
-            var newDir = "D:\\AndroidSdk\\platform-tools";
-            var killCommand = "cmd.exe /c start .\\adb.exe -s emulator-5554 emu kill";
-            var builder = Runtime.getRuntime();
-            var process = builder.exec(killCommand, null, new File(newDir));
-            process.waitFor(4000, TimeUnit.MILLISECONDS);
-        }catch (IOException e){
-            e.printStackTrace();
-        }catch (InterruptedException e){
-            e.printStackTrace();
-        }
-    }
 }
 
