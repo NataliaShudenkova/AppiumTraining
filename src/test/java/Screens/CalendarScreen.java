@@ -3,6 +3,7 @@ package Screens;
 import com.google.common.collect.ImmutableMap;
 import io.appium.java_client.AppiumBy;
 import io.appium.java_client.AppiumDriver;
+import io.qameta.allure.Step;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 
@@ -18,19 +19,22 @@ public class CalendarScreen extends BaseScreen{
     private final By Calendar_Left_Sidebar =  AppiumBy.accessibilityId("Show Calendar List and Settings drawer");
     private final By Calendar_Schedule_Tab =  By.xpath("//*[contains(@content-desc,'Schedule view')]");
     private final By Calendar_Delete_Event_Button =  By.id("android:id/button1");
+
+    @Step("Click on 'Add Event'")
     public void clickAddEvent(){
         findByWithWaitForSeconds(Calendar_Actions_Button).click();
         findByWithWaitForSeconds(Calendar_Event_Button).click();
     }
 
+    @Step("Delete event from Calendar")
     public void deleteEventFromSchedule(String eventName) {
         findByWithWaitForSeconds(Calendar_Left_Sidebar).click();
         findByWithWaitForMinute(Calendar_Schedule_Tab).click();
-        var eventElements = driver.findElements(By.xpath("//*[contains(@content-desc, '" + eventName + "')]"));
+        var eventElement = findByWithWaitForSeconds(By.xpath("//*[contains(@content-desc, '" + eventName + "')]"));
 
-        if(!eventElements.isEmpty()) {
-            for (var eventElement :
-                    eventElements) {
+        if(eventElement != null) {
+           // for (var eventElement :
+           //         eventElements) {
                 var startY = eventElement.getLocation().getY();
                 int startX = eventElement.getLocation().getX();
                 var width = eventElement.getSize().getWidth();
@@ -42,7 +46,7 @@ public class CalendarScreen extends BaseScreen{
                 ));
 
                 findByWithWaitForSeconds(Calendar_Delete_Event_Button).click();
-            }
+         //   }
         }
     }
 }
