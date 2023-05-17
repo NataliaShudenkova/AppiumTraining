@@ -11,14 +11,12 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.TestWatcher;
 import org.openqa.selenium.By;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.time.OffsetTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.concurrent.TimeUnit;
 
 @Category(CalendarApp.class)
 public class CalendarApp extends TestBase {
@@ -162,18 +160,7 @@ public class CalendarApp extends TestBase {
     public void driverTearDown() throws IOException {
         calendarScreen.deleteEventFromSchedule(eventName);
         driver.quit();
-        //kill emulator
-        try{
-            var newDir = "D:\\AndroidSdk\\platform-tools";
-            var killCommand = "cmd.exe /c start .\\adb.exe -s emulator-5554 emu kill";
-            var builder = Runtime.getRuntime();
-            var process = builder.exec(killCommand, null, new File(newDir));
-            process.waitFor(4000, TimeUnit.MILLISECONDS);
-        }catch (IOException e){
-            e.printStackTrace();
-        }catch (InterruptedException e){
-            e.printStackTrace();
-        }
+
     }
 
     /*private void deleteEvent() throws InterruptedException {
@@ -194,6 +181,5 @@ public class CalendarApp extends TestBase {
             }
         }
     }*/
-
 }
 

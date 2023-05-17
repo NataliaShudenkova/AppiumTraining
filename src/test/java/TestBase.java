@@ -2,9 +2,11 @@ import io.appium.java_client.android.AndroidDriver;
 import io.qameta.allure.Attachment;
 import io.qameta.allure.Step;
 import org.apache.commons.io.FileUtils;
+import org.junit.AfterClass;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.remote.DesiredCapabilities;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -14,6 +16,7 @@ import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 public class TestBase {
 
@@ -55,5 +58,21 @@ public class TestBase {
     @Step("Add environment file if test is failed")
     public static byte[] getBytesAnnotationWithArgs() throws IOException {
         return Files.readAllBytes(Paths.get("C:\\AppiumLecture1\\allure-results", "environment.properties"));
+    }
+
+    @AfterClass
+    public static void killEmulator(){
+        //kill emulator
+        try{
+            var newDir = "D:\\AndroidSdk\\platform-tools";
+            var killCommand = "cmd.exe /c start .\\adb.exe -s emulator-5554 emu kill";
+            var builder = Runtime.getRuntime();
+            var process = builder.exec(killCommand, null, new File(newDir));
+            process.waitFor(4000, TimeUnit.MILLISECONDS);
+        }catch (IOException e){
+            e.printStackTrace();
+        }catch (InterruptedException e){
+            e.printStackTrace();
+        }
     }
 }
