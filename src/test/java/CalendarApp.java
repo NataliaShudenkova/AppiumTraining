@@ -5,21 +5,20 @@ import Screens.WelcomeCalendarScreen;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.android.nativekey.AndroidKey;
 import io.appium.java_client.android.nativekey.KeyEvent;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import io.qameta.allure.*;
+import org.junit.*;
+import org.junit.experimental.categories.Category;
+import org.junit.rules.TestWatcher;
 import org.openqa.selenium.By;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.time.OffsetTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.concurrent.TimeUnit;
 
+@Category(CalendarApp.class)
 public class CalendarApp extends TestBase {
     private AndroidDriver driver;
     WelcomeCalendarScreen welcomeCalendarScreen;
@@ -29,9 +28,8 @@ public class CalendarApp extends TestBase {
 
     String eventName;
 
-
-
     @Before
+    @Step("Set up")
     public void pageSetUp() throws MalformedURLException {
         driver = driverSetUp();
         welcomeCalendarScreen = new WelcomeCalendarScreen(driver);
@@ -40,7 +38,25 @@ public class CalendarApp extends TestBase {
         notificationScreen = new NotificationScreen(driver);
     }
 
+    @Rule
+    public TestWatcher testWatcher = new TestWatcher() {
+        @Override
+        public void failed(Throwable e, org.junit.runner.Description description) {
+            try {
+                getBytesAnnotationWithArgs();
+                takeScreenshotToAttachOnAllureReport(driver);
+            } catch (IOException ex) {
+                throw new RuntimeException(ex);
+            }
+            super.failed(e, description);
+        }
+    };
+
     @Test
+    @Description("Create Event with Location in Calendar")
+    @Feature("Calendar")
+    @Story("Calendar_Location_Story")
+    @TmsLink("123456")
     public void testMethod() throws InterruptedException {
         //Verify if Welcome window displayed.
         if(welcomeCalendarScreen.isWelcomeCalendarScreen())
@@ -91,6 +107,11 @@ public class CalendarApp extends TestBase {
     }
 
     @Test
+    @Feature("Calendar")
+    @Story("Calendar_Notification_Story")
+    @Description("Verify Notification after creating event")
+    @AllureId("Test_Id_2")
+    @TmsLink("123457")
     public void calendarNotification() throws InterruptedException{
         if(welcomeCalendarScreen.isWelcomeCalendarScreen())
         {
@@ -135,22 +156,11 @@ public class CalendarApp extends TestBase {
     }
 
     @After
-    public void driverTearDown() {
-        //deleteEvent();
+    @Step("Tear down")
+    public void driverTearDown() throws IOException {
         calendarScreen.deleteEventFromSchedule(eventName);
         driver.quit();
-        //kill emulator
-        try{
-            var newDir = "D:\\AndroidSdk\\platform-tools";
-            var killCommand = "cmd.exe /c start .\\adb.exe -s emulator-5554 emu kill";
-            var builder = Runtime.getRuntime();
-            var process = builder.exec(killCommand, null, new File(newDir));
-            process.waitFor(4000, TimeUnit.MILLISECONDS);
-        }catch (IOException e){
-            e.printStackTrace();
-        }catch (InterruptedException e){
-            e.printStackTrace();
-        }
+
     }
 
     /*private void deleteEvent() throws InterruptedException {
@@ -171,6 +181,5 @@ public class CalendarApp extends TestBase {
             }
         }
     }*/
-
 }
 

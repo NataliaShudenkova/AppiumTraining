@@ -31,6 +31,7 @@ public abstract class BaseScreen {
         return wait.until(elementIsDisplayed(by));
     }
 
+
     public WebElement findByWithWaitForMinute(By by){
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofMinutes(1));
         return wait.until(elementIsDisplayed(by));
@@ -44,4 +45,5 @@ public abstract class BaseScreen {
             return false;
         }
     }
+
 }

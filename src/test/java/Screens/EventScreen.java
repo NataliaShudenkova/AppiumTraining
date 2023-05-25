@@ -5,6 +5,7 @@ import io.appium.java_client.AppiumDriver;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.android.nativekey.AndroidKey;
 import io.appium.java_client.android.nativekey.KeyEvent;
+import io.qameta.allure.Step;
 import org.openqa.selenium.By;
 
 import java.time.OffsetTime;
@@ -34,7 +35,7 @@ public class EventScreen extends BaseScreen{
     private final By Event_Save_Button =  By.id("save");
 
 
-
+    @Step("Create event")
     public void createEvent(String eventName, List<OffsetTime> timeButtonValue,
                             List<OffsetTime> eventTime, AndroidDriver androidDriver) throws InterruptedException {
         findByWithWaitForSeconds(Event_Title_Field).sendKeys(eventName);
@@ -45,7 +46,7 @@ public class EventScreen extends BaseScreen{
         findByWithWaitForSeconds(Event_Save_Button).click();
     }
 
-
+    @Step("Create event with location.")
     public void createEventWithLocation(String eventName, List<OffsetTime> timeButtonValue,
                                         List<OffsetTime> eventTime, AndroidDriver androidDriver,
                                         String locationSearch, String locationResult) throws InterruptedException {
@@ -58,6 +59,7 @@ public class EventScreen extends BaseScreen{
         findByWithWaitForSeconds(Event_Save_Button).click();
     }
 
+    @Step("Set location.")
     private void setLocation(String locationSearch, String locationResult) {
         findByWithWaitForSeconds(Event_Add_Location_Button).click();
         if(tryFindElement(Event_AutoDetect_Location_Popup)){
@@ -67,6 +69,7 @@ public class EventScreen extends BaseScreen{
         findByWithWaitForSeconds(By.xpath("//*[@text = '"+ locationResult + "']")).click();
     }
 
+    @Step("Set time")
     private void setTime(boolean isStartTime, OffsetTime timeButtonValue, OffsetTime eventTime) throws InterruptedException {
         var formattedTimeButtonValue = timeButtonValue.format(DateTimeFormatter.ofPattern("h:mm a"));
         var timeButton = findByWithWaitForSeconds(AppiumBy.accessibilityId(isStartTime ? "Start time: " + formattedTimeButtonValue : "End time: " + formattedTimeButtonValue));
